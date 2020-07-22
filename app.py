@@ -1,0 +1,386 @@
+# External modules required:
+#   pip install dash            --> add dash board elements on web page
+#   pip isntall dash_daq        --> add dash DAQ, Data Acquisition and Control
+#   pip install python-dotenv   --> use environment variables for email account
+#   pip install paho-mqtt       --> use MQTT
+#   pip install pandas          --> read data
+
+# MQTT import
+import paho.mqtt.client as mqtt
+
+# For getting environmental variables
+from dotenv import load_dotenv
+import os
+
+# For data calculations
+import pandas as pd
+
+# For file path handling
+from pathlib import Path
+
+# *** dash import and set up ***
+#
+import dash
+import dash_daq as daq
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import plotly.express as px
+import dash_bootstrap_components as dbc
+
+dash_web_page_update_interval = 2000  # in milliseconds
+external_stylesheets = [dbc.themes.BOOTSTRAP]
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# For different themes, visit
+# https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
+# For layout uisng dbc, visit
+# https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
+# *** dash import and set up ***
+
+
+# *** Read data for graph ***
+#
+equipment_ID = "gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"
+csv_path = Path("data", "log_processed.csv")
+usage_hist_df = pd.read_csv(csv_path, parse_dates=["time"])
+usage_hist_from = usage_hist_df["time"].min()
+usage_hist_to = usage_hist_df["time"].max()
+
+usage_showrange = "1 hour"
+usage_hist_filter = (usage_hist_df["time"] >
+                    (usage_hist_to - pd.Timedelta(usage_showrange)))
+usage_hist_extract = usage_hist_df[usage_hist_filter][["time", "Indicator"]]
+
+parts = 5  # No of divisions in dash RangeSlider
+dtime = usage_hist_to - usage_hist_from
+usage_hist_tlist = [(usage_hist_from + i*dtime/parts) for i in range(parts)]
+usage_hist_tlist.append(usage_hist_to)
+
+slider_marks = {(usage_hist_tlist[n]-usage_hist_from).days:
+                usage_hist_tlist[n].strftime("%Y-%m-%d")
+                for n in range(parts)}
+slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
+#
+# *** Read data for graph ***
+
+
+# *** MQTT setup ***
+#
+load_dotenv()
+mqtt_broker = os.getenv("MQTT_BROKER")
+mqtt_user = os.getenv("MQTT_USER")
+mqtt_pwd = os.getenv("MQTT_PWD")
+broker_address = mqtt_broker  # Broker address
+port = 10074  # Broker port
+user = mqtt_user  # Connection username
+password = mqtt_pwd  # Connection password
+# topic_levels = ["gogclpba", "feeds", "NPBLamp"]
+# topic = ["gogclpba", "P001", "HKCG", "NPB", "GL"]    # gas lamp
+topic_levels = ["gogclpba",
+                "T_SKF",
+                "C003",
+                "NPB19F",
+                ["LED1", "LED2", "LED3", "ANA", "RND"],
+                ["Status", "Level-Burner", "Switch"]
+                ]
+topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
+topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
+
+# create topic_msg dict with keys=topics
+topic_msg = {}
+topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] = "0"
+topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] = "0"
+topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] = "0"
+topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"] = "0"
+topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"] = "0"
+topic_msg[topic_publish] = 0
+#
+# *** MQTT setup ***
+
+indicator_colors = {
+    "off": "#a9a9a9",   # grey
+    "on_g": "#7cfc00",    # green
+    "on_r": "#df2020",   # dim red
+    "on_y": "#e6e600",    # yellow
+    "fault": "#ff0000"  # red
+}
+
+# Label on button for LED3
+LED3_btn_lbl = ""
+
+# *** dash web page set up
+#
+app.layout = html.Div([
+
+    dbc.Row([
+        dbc.Col([
+            daq.Indicator(
+                id="LED1",
+                label="LED1",
+                labelPosition="bottom",
+                size="20",
+                color=indicator_colors["off"],
+            ),
+        ], className="mt2 mb-2", sm=4),
+
+        dbc.Col([
+            daq.Indicator(
+                id="LED2",
+                label="LED2",
+                labelPosition="bottom",
+                size="20",
+                color=indicator_colors["off"],
+            ),
+        ], className="mt-2 mb-2", sm=4),
+
+
+        dbc.Col([
+            dbc.Row([
+                daq.Indicator(
+                    id="LED3",
+                    # label="LED3",
+                    # labelPosition="top",
+                    size="30",
+                    color=indicator_colors["off"]),
+                dbc.Button(
+                    children=LED3_btn_lbl,
+                    outline=False,
+                    id="LED3_switch",
+                    color="primary",
+                    size="sm",
+                    style = {"marginLeft": 5})
+            ], justify="center"),
+        ], className="mt-2 mb-4", sm=4, align="center"),
+    ]),
+
+    daq.Gauge(
+        id="ANA",
+        color={
+            "gradient": True,
+            "ranges": {"yellow": [0, 3], "red":[3, 4]}
+        },
+        label="Main Cock",
+        labelPosition="bottom",
+        min=0,
+        max=4,
+        size=200,
+        # showCurrentValue=True,
+        scale={"start": 0, "interval": 1, "labelInterval": 1},
+        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+    ),
+
+    html.Br(),
+
+    daq.Gauge(
+        id="RND",
+        color={
+            "gradient": True,
+            "ranges": {"yellow": [0, 3], "red":[3, 4]}
+        },
+        label={"label": "Random"},
+        min=0,
+        max=4,
+        size=300,
+        # step=1,
+        # showCurrentValue=True,
+        scale={"start": 0, "interval": 1, "labelInterval": 1},
+        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+    ),
+
+    html.Br(),
+
+    dcc.Graph(
+        id="graph_usage",
+        # figure=fig_usage
+    ),
+
+    html.Hr(),
+
+    html.H6(
+        id="from_to"
+    ),
+
+    html.Div([
+        dcc.RangeSlider(
+            id='time-slider',
+            min=0,
+            max=dtime.days,
+            value=[0, dtime.days], step=1,
+            marks=slider_marks,
+            included=True,
+            allowCross=False),
+    ], style={'width': '90%', 'padding': '0px 100px 10px 30px'}),
+
+
+    html.Div([
+        html.Div([
+            dcc.Graph(id="graph_duration")
+        ], className="six columns"),
+
+        html.Div([
+            dcc.Graph(id="graph_consumption")
+        ], className="six columns"),
+    ], className="row"),
+
+
+    dcc.Interval(
+        id="interval-component",
+        interval=dash_web_page_update_interval,
+        n_intervals=0
+    ),
+
+    html.Div(
+        id="hidden-div",
+        style={"display": "none"}
+    )
+])
+#
+# *** dash web page set up
+
+
+@app.callback(
+    [
+        Output("from_to", "children"),
+        Output("graph_duration", "figure"),
+        Output("graph_consumption", "figure")
+    ],
+    [Input("time-slider", "value")]
+)
+def update_text(value):
+    t_from = usage_hist_from + pd.Timedelta(value[0], unit="d")
+    t_to = usage_hist_from + pd.Timedelta(value[1], unit="d")
+    df_filter = (usage_hist_df["time"] >= t_from) & \
+                (usage_hist_df["time"] <= t_to) & \
+                (usage_hist_df["Indicator"] != 0)
+    df = usage_hist_df[df_filter].groupby("Indicator").sum()
+    df_duration_total = df["Duration_hr"].sum()
+    df_consumption_total = df["Consumption_MJ"].sum()
+
+    text_from_to = f'During the period from {t_from.strftime("%Y-%m-%d")} to {t_to.strftime("%Y-%m-%d")}'
+
+    fig_duration = px.bar(
+                    df,
+                    y="Duration_hr",
+                    title=f"Accumulated Working Hour = {df_duration_total:,.1f} hr",
+                    # range_y=[df_duration_min, df_duration_max],
+                    hover_data={"Duration_hr": ":,.1f"},
+                    labels={
+                            "Indicator": "Main Cock Position",
+                            "Duration_hr": "Duration (hr)"
+
+                    }
+    )
+    fig_duration.update_layout(xaxis_type="category")
+    fig_duration.update_traces(marker_color="green")
+    fig_consumption = px.bar(
+                        df,
+                        y="Consumption_MJ",
+                        title=f"Accumulated Consumption = {df_consumption_total:,.0f}MJ",
+                        labels={"Indicator": "Main Cock Position", "Consumption_MJ": "Consumption (MJ)"},
+                        hover_data={"Consumption_MJ": ":,.0f"}
+    )
+    fig_consumption.update_layout(xaxis_type="category")
+
+    return text_from_to, fig_duration, fig_consumption
+
+
+@app.callback(
+    [
+        Output("LED1", "color"),
+        Output("LED2", "color"),
+        Output("LED3", "color"),
+        Output("LED3_switch", "children"),
+        Output("LED3_switch", "outline"),
+        Output("ANA", "value"),
+        Output("RND", "value"),
+        Output("graph_usage", "figure")
+    ],
+    [Input("interval-component", "n_intervals")]
+)
+def update_indicator(n_intervals):
+
+    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] == "1":
+        LED1_color = indicator_colors["on_r"]
+    else:
+        LED1_color = indicator_colors["off"]
+
+    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] == "1":
+        LED2_color = indicator_colors["on_g"]
+    else:
+        LED2_color = indicator_colors["off"]
+
+    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+        LED3_color = indicator_colors["on_y"]
+        LED3_btn_lbl = "Turn Off"
+        LED3_outline = False
+    else:
+        LED3_color = indicator_colors["off"]
+        LED3_btn_lbl = "Turn On"
+        LED3_outline = True
+
+    ANA_Level_Burner = int(
+        topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+    RND_Level_Burner = int(
+        topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+
+    global usage_hist_extract
+    usage_hist_extract = usage_hist_extract.append(
+                        {"time": pd.Timestamp.now(), "Indicator": RND_Level_Burner},
+                        ignore_index=True)
+    filter_showrange = (pd.Timestamp.now() - usage_hist_extract["time"]) > pd.Timedelta(usage_showrange)
+    usage_hist_extract.drop(index=usage_hist_extract[filter_showrange].index, inplace=True)
+
+    fig_usage = px.line(
+                        usage_hist_extract,
+                        x=usage_hist_extract["time"],
+                        y=usage_hist_extract["Indicator"],
+                        title=f"Usage Pattern of last {usage_showrange}",
+                        labels={"Indicator": "Main Cock Position"},
+                        range_y=[0, 4]
+    )
+
+
+    return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
+        ANA_Level_Burner, RND_Level_Burner, fig_usage
+
+
+@app.callback(
+    Output("hidden-div", "children"),
+    [Input("LED3_switch", "n_clicks"), ]
+)
+def click_button(n):
+    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+        client_MQTT.publish(topic_publish, "0")
+        return
+    else:
+        client_MQTT.publish(topic_publish, "1")
+        return
+
+
+def on_connect(client_MQTT, userdata, flags, rc):
+    print("Connected with Code :" + str(rc))
+    # Subscribe Topic from here
+    client_MQTT.subscribe(topic_subscribe)
+    print(f"Subscribe = {topic_subscribe}")
+
+
+# Callback Function on Receiving the Subscribed Topic/Message
+def on_message(client_MQTT, userdata, msg):
+    topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
+
+
+client_MQTT = mqtt.Client()  # create new MQTT instance
+# set username and password
+client_MQTT.username_pw_set(user, password=password)
+client_MQTT.on_connect = on_connect  # attach function to callback
+client_MQTT.on_message = on_message  # attach function to callback
+client_MQTT.connect(broker_address, port=port)  # connect to broker
+
+
+if __name__ == "__main__":
+    # client.loop_forever()
+    client_MQTT.loop_start()
+    app.run_server(debug=True, dev_tools_hot_reload=False)
+
+client_MQTT.loop_stop()
+client_MQTT.disconnect()
