@@ -37,6 +37,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 # https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
 # *** dash import and set up ***
 
+server = app.server
 
 # *** Read data for graph ***
 #
