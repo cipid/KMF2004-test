@@ -10,7 +10,7 @@
 import paho.mqtt.client as mqtt
 
 # For getting environmental variables
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os
 from boto.s3.connection import S3Connection  # For heroku.com
 
@@ -70,17 +70,19 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 # *** MQTT setup ***
 #
 load_dotenv()
-# mqtt_broker = os.getenv("MQTT_BROKER")
-# mqtt_user = os.getenv("MQTT_USER")
-# mqtt_pwd = os.getenv("MQTT_PWD")
-s3 = S3Connection(os.environ["MQTT_BROKER"],
-                  os.environ["MQTT_USER"],
-                  os.environ["MQTT_PWD"])
+mqtt_dict = {
+    "MQTT_BROKER": os.getenv("MQTT_BROKER"),
+    "MQTT_USER":os.getenv("MQTT_USER"),
+    "MQTT_PWD":os.getenv("MQTT_PWD"),
+}
+# mqtt_dict = S3Connection(os.environ["MQTT_BROKER"],
+#                   os.environ["MQTT_USER"],
+#                   os.environ["MQTT_PWD"])
 
-broker_address = mqtt_broker  # Broker address
+broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
 port = 10074  # Broker port
-user = mqtt_user  # Connection username
-password = mqtt_pwd  # Connection password
+user = mqtt_dict["MQTT_USER"]  # Connection username
+password = mqtt_dict["MQTT_PWD"]  # Connection password
 # topic_levels = ["gogclpba", "feeds", "NPBLamp"]
 # topic = ["gogclpba", "P001", "HKCG", "NPB", "GL"]    # gas lamp
 topic_levels = ["gogclpba",
