@@ -68,16 +68,19 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
-#
-load_dotenv()
-mqtt_dict = {
-    "MQTT_BROKER": os.getenv("MQTT_BROKER"),
-    "MQTT_USER":os.getenv("MQTT_USER"),
-    "MQTT_PWD":os.getenv("MQTT_PWD"),
-}
-# mqtt_dict = S3Connection(os.environ["MQTT_BROKER"],
-#                   os.environ["MQTT_USER"],
-#                   os.environ["MQTT_PWD"])
+try:
+    # Get enviromental variables in Heroku
+    mqtt_dict = S3Connection(os.environ["MQTT_BROKER"],
+                    os.environ["MQTT_USER"],
+                    os.environ["MQTT_PWD"])
+except KeyError:
+    # Get environmental variables in other systems
+    load_dotenv()
+    mqtt_dict = {
+        "MQTT_BROKER": os.getenv("MQTT_BROKER"),
+        "MQTT_USER":os.getenv("MQTT_USER"),
+        "MQTT_PWD":os.getenv("MQTT_PWD"),
+    }
 
 broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
 port = 10074  # Broker port
