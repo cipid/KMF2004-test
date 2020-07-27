@@ -51,7 +51,7 @@ server = app.server
 equipment_ID = "gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"
 csv_path = Path("data", "log_processed.csv")
 usage_hist_df = pd.read_csv(csv_path, parse_dates=["time"])
-usage_hist_df["time"] = usage_hist_df["time"].dt.tz_localize(tz=tz_hk)
+# usage_hist_df["time"] = usage_hist_df["time"].dt.tz_localize(tz=tz_hk)
 usage_hist_from = usage_hist_df["time"].min()
 usage_hist_to = usage_hist_df["time"].max()
 
@@ -83,7 +83,7 @@ except KeyError:
     # Get environmental variables in other systems
     load_dotenv()
     mqtt_dict = {
-        "MQTT_BROKER": os.getenv("MQTT_BROKER"),
+        "MQTT_BROKER":os.getenv("MQTT_BROKER"),
         "MQTT_USER":os.getenv("MQTT_USER"),
         "MQTT_PWD":os.getenv("MQTT_PWD"),
     }
@@ -129,6 +129,9 @@ LED3_btn_lbl = ""
 # *** dash web page set up
 #
 app.layout = html.Div([
+
+    html.P(f"MQTT dict = {mqtt_dict['MQTT_BROKER']}"),
+    html.Hr(),
 
     dbc.Row([
         dbc.Col([
@@ -227,7 +230,7 @@ app.layout = html.Div([
             marks=slider_marks,
             included=True,
             allowCross=False),
-    ], style={'width': '90%', 'padding': '0px 100px 10px 30px'}),
+    ], style={'width': '90%', 'padding': '5px 30px 10px 30px'}),
 
 
     html.Div([
@@ -342,12 +345,13 @@ def update_indicator(n_intervals):
         topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
 
     global usage_hist_extract
+    t_now = pd.Timestamp.now(tz=tz_hk).tz_localize(None)
     usage_hist_extract = usage_hist_extract.append(
-                        {"time": pd.Timestamp.now(tz=tz_hk), "Indicator": RND_Level_Burner},
+                        {"time": t_now, "Indicator": RND_Level_Burner},
                         ignore_index=True)
-    filter_showrange = (pd.Timestamp.now(tz=tz_hk) - usage_hist_extract["time"]) > pd.Timedelta(usage_showrange)
+    filter_showrange = (t_now - usage_hist_extract["time"]) > pd.Timedelta(usage_showrange)
     usage_hist_extract.drop(index=usage_hist_extract[filter_showrange].index, inplace=True)
-    print(usage_hist_extract["time"])
+    # print(usage_hist_extract["time"])
 
     fig_usage = px.line(
                         usage_hist_extract,
