@@ -17,6 +17,11 @@ from boto.s3.connection import S3Connection  # For heroku.com
 # For data calculations
 import pandas as pd
 
+# For timezone calculations
+from pytz import timezone
+tz_hk = timezone("Asia/Hong_Kong")
+tz_utc = timezone("UTC")
+
 # For file path handling
 from pathlib import Path
 
@@ -46,6 +51,7 @@ server = app.server
 equipment_ID = "gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"
 csv_path = Path("data", "log_processed.csv")
 usage_hist_df = pd.read_csv(csv_path, parse_dates=["time"])
+usage_hist_df["time"] = usage_hist_df["time"].dt.tz_localize(tz=tz_hk)
 usage_hist_from = usage_hist_df["time"].min()
 usage_hist_to = usage_hist_df["time"].max()
 
@@ -337,10 +343,11 @@ def update_indicator(n_intervals):
 
     global usage_hist_extract
     usage_hist_extract = usage_hist_extract.append(
-                        {"time": pd.Timestamp.now(), "Indicator": RND_Level_Burner},
+                        {"time": pd.Timestamp.now(tz=tz_hk), "Indicator": RND_Level_Burner},
                         ignore_index=True)
-    filter_showrange = (pd.Timestamp.now() - usage_hist_extract["time"]) > pd.Timedelta(usage_showrange)
+    filter_showrange = (pd.Timestamp.now(tz=tz_hk) - usage_hist_extract["time"]) > pd.Timedelta(usage_showrange)
     usage_hist_extract.drop(index=usage_hist_extract[filter_showrange].index, inplace=True)
+    print(usage_hist_extract["time"])
 
     fig_usage = px.line(
                         usage_hist_extract,
