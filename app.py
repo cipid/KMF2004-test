@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import os
 import urllib.parse
-from boto.s3.connection import S3Connection  # For heroku.com
+# from boto.s3.connection import S3Connection  # For heroku.com
 
 # For data calculations
 import pandas as pd
@@ -36,7 +36,7 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 import dash_bootstrap_components as dbc
 
-dash_web_page_update_interval = 2000  # in milliseconds
+dash_web_page_update_interval = 5000  # in milliseconds
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 # For different themes, visit
@@ -105,17 +105,19 @@ topic_levels = [user,
                 ["LED1", "LED2", "LED3", "ANA", "RND"],
                 ["Status", "Level-Burner", "Switch"]
 ]
-topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
-topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
+topic_prefix = "/".join(topic_levels[: 4]) +"/"
+topic_subscribe = topic_prefix + "#"
+topic_publish = topic_prefix + "LED3/Switch"
 
 # create topic_msg dict with keys=topics
 topic_msg = {}
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"] = "0"
+topic_msg[topic_prefix + "LED1/Status"] = "0"
+topic_msg[topic_prefix + "LED2/Status"] = "0"
+topic_msg[topic_prefix + "LED3/Status"] = "0"
+topic_msg[topic_prefix + "ANA/Level-Burner"] = "0"
+topic_msg[topic_prefix + "RND/Level-Burner"] = "0"
 topic_msg[topic_publish] = 0
+print(topic_msg)
 #
 # *** MQTT setup ***
 
@@ -133,9 +135,6 @@ LED3_btn_lbl = ""
 # *** dash web page set up
 #
 app.layout = html.Div([
-
-    html.P(f"MQTT dict = {mqtt_dict['MQTT_BROKER']}"),
-    html.Hr(),
 
     dbc.Row([
         dbc.Col([
@@ -191,7 +190,7 @@ app.layout = html.Div([
         size=200,
         # showCurrentValue=True,
         scale={"start": 0, "interval": 1, "labelInterval": 1},
-        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+        value=int(topic_msg[topic_prefix + "ANA/Level-Burner"])
     ),
 
     html.Br(),
@@ -209,7 +208,7 @@ app.layout = html.Div([
         # step=1,
         # showCurrentValue=True,
         scale={"start": 0, "interval": 1, "labelInterval": 1},
-        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+        value=int(topic_msg[topic_prefix + "RND/Level-Burner"])
     ),
 
     html.Br(),
@@ -324,17 +323,17 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] == "1":
+    if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
     else:
         LED1_color = indicator_colors["off"]
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] == "1":
+    if topic_msg[topic_prefix + "LED2/Status"] == "1":
         LED2_color = indicator_colors["on_g"]
     else:
         LED2_color = indicator_colors["off"]
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+    if topic_msg[topic_prefix + "LED3/Status"] == "1":
         LED3_color = indicator_colors["on_y"]
         LED3_btn_lbl = "Turn Off"
         LED3_outline = False
@@ -344,9 +343,9 @@ def update_indicator(n_intervals):
         LED3_outline = True
 
     ANA_Level_Burner = int(
-        topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+        topic_msg[topic_prefix + "ANA/Level-Burner"])
     RND_Level_Burner = int(
-        topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+        topic_msg[topic_prefix + "RND/Level-Burner"])
 
     global usage_hist_extract
     t_now = pd.Timestamp.now(tz=tz_hk).tz_localize(None)
@@ -376,7 +375,7 @@ def update_indicator(n_intervals):
     [Input("LED3_switch", "n_clicks"), ]
 )
 def click_button(n):
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+    if topic_msg[topic_prefix + "LED3/Status"] == "1":
         client_MQTT.publish(topic_publish, "0")
         return
     else:
@@ -385,15 +384,16 @@ def click_button(n):
 
 
 def on_connect(client_MQTT, userdata, flags, rc):
-    # print("Connected with Code :" + str(rc))
+    print("Connected with Code :" + str(rc))
     # Subscribe Topic from here
     client_MQTT.subscribe(topic_subscribe)
-    # print(f"Subscribe = {topic_subscribe}")
+    print(f"Topic subscribed: {topic_subscribe}")
 
 
 # Callback Function on Receiving the Subscribed Topic/Message
 def on_message(client_MQTT, userdata, msg):
     topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
+    print(f"{msg.topic} : topic_msg[msg.topic]")
 
 
 client_MQTT = mqtt.Client()  # create new MQTT instance
