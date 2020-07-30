@@ -12,6 +12,7 @@ import paho.mqtt.client as mqtt
 # For getting environmental variables
 from dotenv import load_dotenv
 import os
+import urllib.parse
 from boto.s3.connection import S3Connection  # For heroku.com
 
 # For data calculations
@@ -74,33 +75,36 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
-try:
-    # Get enviromental variables in Heroku
-    mqtt_dict = S3Connection(os.environ["MQTT_BROKER"],
-                    os.environ["MQTT_USER"],
-                    os.environ["MQTT_PWD"])
-except KeyError:
+url_str = os.environ.get('CLOUDMQTT_URL')
+if url_str != None:  #  CloudMQTT has been set up in Heroku
+    url = urllib.parse.urlparse(url_str)
+    mqtt_dict = {
+        "MQTT_BROKER": url.hostname,
+        "MQTT_USER": url.username,
+        "MQTT_PWD":url.password,
+        "MQTT_PORT": url.port
+    }
+else: 
     # Get environmental variables in other systems
     load_dotenv()
     mqtt_dict = {
         "MQTT_BROKER":os.getenv("MQTT_BROKER"),
         "MQTT_USER":os.getenv("MQTT_USER"),
         "MQTT_PWD":os.getenv("MQTT_PWD"),
+        "MQTT_PORT": os.getenv("MQTT_PORT"),
     }
 
 broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
-port = 10074  # Broker port
+port = int(mqtt_dict["MQTT_PORT"])  # Broker port
 user = mqtt_dict["MQTT_USER"]  # Connection username
 password = mqtt_dict["MQTT_PWD"]  # Connection password
-# topic_levels = ["gogclpba", "feeds", "NPBLamp"]
-# topic = ["gogclpba", "P001", "HKCG", "NPB", "GL"]    # gas lamp
-topic_levels = ["gogclpba",
+topic_levels = [user,
                 "T_SKF",
                 "C003",
                 "NPB19F",
                 ["LED1", "LED2", "LED3", "ANA", "RND"],
                 ["Status", "Level-Burner", "Switch"]
-                ]
+]
 topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
 topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
 
@@ -381,10 +385,10 @@ def click_button(n):
 
 
 def on_connect(client_MQTT, userdata, flags, rc):
-    print("Connected with Code :" + str(rc))
+    # print("Connected with Code :" + str(rc))
     # Subscribe Topic from here
     client_MQTT.subscribe(topic_subscribe)
-    print(f"Subscribe = {topic_subscribe}")
+    # print(f"Subscribe = {topic_subscribe}")
 
 
 # Callback Function on Receiving the Subscribed Topic/Message
