@@ -75,6 +75,7 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
+#
 url_str = os.environ.get('CLOUDMQTT_URL')
 if url_str != None:  #  CloudMQTT has been set up in Heroku
     url = urllib.parse.urlparse(url_str)
@@ -105,25 +106,31 @@ topic_levels = [user,
                 ["LED1", "LED2", "LED3", "ANA", "RND"],
                 ["Status", "Level-Burner", "Switch"]
 ]
-topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
-topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
+
+topic_prefix = "/".join(topic_levels[: 4]) +"/"
+topic_subscribe = topic_prefix + "#"
+topic_publish = topic_prefix + "LED3/Switch"
+
+# topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
+# topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
 
 # create topic_msg dict with keys=topics
 topic_msg = {}
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"] = "0"
-topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"] = "0"
+topic_msg[topic_prefix + "LED1/Status"] = "0"
+topic_msg[topic_prefix + "LED2/Status"] = "0"
+topic_msg[topic_prefix + "LED3/Status"] = "0"
+topic_msg[topic_prefix + "ANA/Level-Burner"] = "0"
+topic_msg[topic_prefix + "RND/Level-Burner"] = "0"
 topic_msg[topic_publish] = 0
 #
 # *** MQTT setup ***
+
 
 indicator_colors = {
     "off": "#a9a9a9",   # grey
     "on_g": "#7cfc00",    # green
     "on_r": "#df2020",   # dim red
-    "on_y": "#e6e600",    # yellow
+    "on_y": "#ffff00",    # yellow
     "fault": "#ff0000"  # red
 }
 
@@ -133,9 +140,6 @@ LED3_btn_lbl = ""
 # *** dash web page set up
 #
 app.layout = html.Div([
-
-    html.P(f"MQTT dict = {mqtt_dict['MQTT_BROKER']}"),
-    html.Hr(),
 
     dbc.Row([
         dbc.Col([
@@ -191,7 +195,7 @@ app.layout = html.Div([
         size=200,
         # showCurrentValue=True,
         scale={"start": 0, "interval": 1, "labelInterval": 1},
-        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+        value=int(topic_msg[topic_prefix + "ANA/Level-Burner"])
     ),
 
     html.Br(),
@@ -209,7 +213,7 @@ app.layout = html.Div([
         # step=1,
         # showCurrentValue=True,
         scale={"start": 0, "interval": 1, "labelInterval": 1},
-        value=int(topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+        value=int(topic_msg[topic_prefix + "RND/Level-Burner"])
     ),
 
     html.Br(),
@@ -324,17 +328,17 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED1/Status"] == "1":
+    if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
     else:
         LED1_color = indicator_colors["off"]
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED2/Status"] == "1":
+    if topic_msg[topic_prefix + "LED2/Status"] == "1":
         LED2_color = indicator_colors["on_g"]
     else:
         LED2_color = indicator_colors["off"]
 
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+    if topic_msg[topic_prefix + "LED3/Status"] == "1":
         LED3_color = indicator_colors["on_y"]
         LED3_btn_lbl = "Turn Off"
         LED3_outline = False
@@ -344,9 +348,9 @@ def update_indicator(n_intervals):
         LED3_outline = True
 
     ANA_Level_Burner = int(
-        topic_msg["gogclpba/T_SKF/C003/NPB19F/ANA/Level-Burner"])
+        topic_msg[topic_prefix + "ANA/Level-Burner"])
     RND_Level_Burner = int(
-        topic_msg["gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"])
+        topic_msg[topic_prefix + "RND/Level-Burner"])
 
     global usage_hist_extract
     t_now = pd.Timestamp.now(tz=tz_hk).tz_localize(None)
@@ -376,7 +380,7 @@ def update_indicator(n_intervals):
     [Input("LED3_switch", "n_clicks"), ]
 )
 def click_button(n):
-    if topic_msg["gogclpba/T_SKF/C003/NPB19F/LED3/Status"] == "1":
+    if topic_msg[topic_prefix + "LED3/Status"] == "1":
         client_MQTT.publish(topic_publish, "0")
         return
     else:
