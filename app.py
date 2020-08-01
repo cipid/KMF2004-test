@@ -75,7 +75,6 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
-<<<<<<< HEAD
 load_dotenv()
 url_str = os.getenv("CLOUDMQTT_URL")
 if url_str == None:  # try boto S3Connection for Heroku platform
@@ -89,27 +88,6 @@ mqtt_dict = {
     "MQTT_PWD":url.password,
     "MQTT_PORT": url.port
 }
-=======
-#
-url_str = os.environ.get('CLOUDMQTT_URL')
-if url_str != None:  #  CloudMQTT has been set up in Heroku
-    url = urllib.parse.urlparse(url_str)
-    mqtt_dict = {
-        "MQTT_BROKER": url.hostname,
-        "MQTT_USER": url.username,
-        "MQTT_PWD":url.password,
-        "MQTT_PORT": url.port
-    }
-else: 
-    # Get environmental variables in other systems
-    load_dotenv()
-    mqtt_dict = {
-        "MQTT_BROKER":os.getenv("MQTT_BROKER"),
-        "MQTT_USER":os.getenv("MQTT_USER"),
-        "MQTT_PWD":os.getenv("MQTT_PWD"),
-        "MQTT_PORT": os.getenv("MQTT_PORT"),
-    }
->>>>>>> 6d8a38a8dc983609064f95e2ed876c43eee02548
 
 broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
 port = int(mqtt_dict["MQTT_PORT"])  # Broker port
@@ -122,19 +100,9 @@ topic_levels = [user,
                 ["LED1", "LED2", "LED3", "ANA", "RND"],
                 ["Status", "Level-Burner", "Switch"]
 ]
-<<<<<<< HEAD
 topic_prefix = "/".join(topic_levels[: 4]) +"/"
 topic_subscribe = topic_prefix + "#"
 topic_publish = topic_prefix + "LED3/Switch"
-=======
-
-topic_prefix = "/".join(topic_levels[: 4]) +"/"
-topic_subscribe = topic_prefix + "#"
-topic_publish = topic_prefix + "LED3/Switch"
-
-# topic_subscribe = "/".join(topic_levels[: 4]) + "/#"
-# topic_publish = "/".join(topic_levels[: 4])+"/LED3/Switch"
->>>>>>> 6d8a38a8dc983609064f95e2ed876c43eee02548
 
 # create topic_msg dict with keys=topics
 topic_msg = {}
