@@ -75,24 +75,19 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
-url_str = os.environ.get('CLOUDMQTT_URL')
-if url_str != None:  #  CloudMQTT has been set up in Heroku
-    url = urllib.parse.urlparse(url_str)
-    mqtt_dict = {
-        "MQTT_BROKER": url.hostname,
-        "MQTT_USER": url.username,
-        "MQTT_PWD":url.password,
-        "MQTT_PORT": url.port
-    }
-else: 
-    # Get environmental variables in other systems
-    load_dotenv()
-    mqtt_dict = {
-        "MQTT_BROKER":os.getenv("MQTT_BROKER"),
-        "MQTT_USER":os.getenv("MQTT_USER"),
-        "MQTT_PWD":os.getenv("MQTT_PWD"),
-        "MQTT_PORT": os.getenv("MQTT_PORT"),
-    }
+load_dotenv()
+url_str = os.getenv("CLOUDMQTT_URL")
+if url_str == None:  # try boto S3Connection for Heroku platform
+    mqtt_dict = S3Connection(os.getenv("CLOUDMQTT_URL"))
+    url_str = mqtt_dict["CLOUDMQTT_URL"]
+
+url = urllib.parse.urlparse(url_str)
+mqtt_dict = {
+    "MQTT_BROKER": url.hostname,
+    "MQTT_USER": url.username,
+    "MQTT_PWD":url.password,
+    "MQTT_PORT": url.port
+}
 
 broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
 port = int(mqtt_dict["MQTT_PORT"])  # Broker port
@@ -117,7 +112,6 @@ topic_msg[topic_prefix + "LED3/Status"] = "0"
 topic_msg[topic_prefix + "ANA/Level-Burner"] = "0"
 topic_msg[topic_prefix + "RND/Level-Burner"] = "0"
 topic_msg[topic_publish] = 0
-print(topic_msg)
 #
 # *** MQTT setup ***
 
@@ -387,13 +381,13 @@ def on_connect(client_MQTT, userdata, flags, rc):
     print("Connected with Code :" + str(rc))
     # Subscribe Topic from here
     client_MQTT.subscribe(topic_subscribe)
-    print(f"Topic subscribed: {topic_subscribe}")
+    # print(f"Topic subscribed: {topic_subscribe}")
 
 
 # Callback Function on Receiving the Subscribed Topic/Message
 def on_message(client_MQTT, userdata, msg):
     topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
-    print(f"{msg.topic} : topic_msg[msg.topic]")
+    # print(f"{msg.topic} : {topic_msg[msg.topic]}")
 
 
 client_MQTT = mqtt.Client()  # create new MQTT instance
