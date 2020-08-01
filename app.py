@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import os
 import urllib.parse
-# from boto.s3.connection import S3Connection  # For heroku.com
+from boto.s3.connection import S3Connection  # For heroku.com
 
 # For data calculations
 import pandas as pd
