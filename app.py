@@ -325,7 +325,7 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    client_MQTT.loop()
+    rc=client_MQTT.loop()
 
     if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
@@ -369,7 +369,7 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
-    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}."
+    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}/{rc}."
 
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
         ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
