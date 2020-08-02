@@ -75,6 +75,7 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 
 # *** MQTT setup ***
+#
 load_dotenv()
 url_str = os.getenv("CLOUDMQTT_URL")
 if url_str == None:  # try boto S3Connection for Heroku platform
@@ -89,6 +90,7 @@ mqtt_dict = {
     "MQTT_PORT": url.port
 }
 
+connect_code = "Nothing"
 broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
 port = int(mqtt_dict["MQTT_PORT"])  # Broker port
 user = mqtt_dict["MQTT_USER"]  # Connection username
@@ -117,10 +119,10 @@ topic_msg[topic_publish] = 0
 
 
 indicator_colors = {
-    "off": "#a9a9a9",   # grey
-    "on_g": "#7cfc00",    # green
-    "on_r": "#df2020",   # dim red
-    "on_y": "#ffff00",    # yellow
+    "off":   "#a9a9a9",  # grey
+    "on_g":  "#7cfc00",  # green
+    "on_r":  "#df2020",  # dim red
+    "on_y":  "#ffff00",  # yellow
     "fault": "#ff0000"  # red
 }
 
@@ -130,6 +132,10 @@ LED3_btn_lbl = ""
 # *** dash web page set up
 #
 app.layout = html.Div([
+    html.Div([
+        html.Small(id="debug_txt"),
+        html.Hr()
+    ]),
 
     dbc.Row([
         dbc.Col([
@@ -312,7 +318,8 @@ def update_text(value):
         Output("LED3_switch", "outline"),
         Output("ANA", "value"),
         Output("RND", "value"),
-        Output("graph_usage", "figure")
+        Output("graph_usage", "figure"),
+        Output("debug_txt","children")
     ],
     [Input("interval-component", "n_intervals")]
 )
@@ -360,9 +367,11 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
+    debug_info = f"{mqtt_dict['MQTT_BROKER']}: {mqtt_dict['MQTT_PORT']}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}."
+    # print(debug_info)
 
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
-        ANA_Level_Burner, RND_Level_Burner, fig_usage
+        ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
 
 
 @app.callback(
@@ -379,7 +388,9 @@ def click_button(n):
 
 
 def on_connect(client_MQTT, userdata, flags, rc):
-    print("Connected with Code :" + str(rc))
+    global connect_code
+    connect_code = str(rc)
+    print(f"Connected Code :{str(rc)}")
     # Subscribe Topic from here
     client_MQTT.subscribe(topic_subscribe)
     # print(f"Topic subscribed: {topic_subscribe}")
