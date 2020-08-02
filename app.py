@@ -403,7 +403,7 @@ def on_message(client_MQTT, userdata, msg):
     # print(f"{msg.topic} : {topic_msg[msg.topic]}")
 
 
-client_MQTT = mqtt.Client()  # create new MQTT instance
+client_MQTT = mqtt.Client(client_id=None, clean_session=True)  # create new MQTT instance
 # set username and password
 client_MQTT.username_pw_set(user, password=password)
 client_MQTT.on_connect = on_connect  # attach function to callback
