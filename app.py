@@ -9,6 +9,10 @@
 # MQTT import
 import paho.mqtt.client as mqtt
 
+# For generating random client ID of MQTT client
+import random
+mqtt_cliend_id = "Test" + str(random.randint(0,20000))
+
 # For getting environmental variables
 from dotenv import load_dotenv
 import os
@@ -369,7 +373,7 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
-    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}/{rc}."
+    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Client ID: {mqtt_cliend_id}; Connect Code={connect_code}/{rc}."
 
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
         ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
@@ -403,7 +407,7 @@ def on_message(client_MQTT, userdata, msg):
     # print(f"{msg.topic} : {topic_msg[msg.topic]}")
 
 
-client_MQTT = mqtt.Client(client_id=None, clean_session=True)  # create new MQTT instance
+client_MQTT = mqtt.Client(client_id=mqtt_cliend_id, clean_session=True)  # create new MQTT instance
 # set username and password
 client_MQTT.username_pw_set(user, password=password)
 client_MQTT.on_connect = on_connect  # attach function to callback
