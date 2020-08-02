@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import os
 import urllib.parse
-from boto.s3.connection import S3Connection  # For heroku.com
+# from boto.s3.connection import S3Connection  # For heroku.com
 
 # For data calculations
 import pandas as pd
@@ -77,11 +77,11 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 # *** MQTT setup ***
 #
 load_dotenv()
-url_str = os.getenv("CLOUDMQTT_URL")
-if url_str == None:  # try boto S3Connection for Heroku platform
-    mqtt_dict = S3Connection(os.getenv("CLOUDMQTT_URL"))
-    url_str = mqtt_dict["CLOUDMQTT_URL"]
+url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://localhost:1883")
 
+# if url_str == None:  # try boto S3Connection for Heroku platform
+#     mqtt_dict = S3Connection(os.getenv("CLOUDMQTT_URL"))
+#     url_str = mqtt_dict["CLOUDMQTT_URL"]
 url = urllib.parse.urlparse(url_str)
 mqtt_dict = {
     "MQTT_BROKER": url.hostname,
@@ -325,6 +325,8 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
+    client_MQTT.loop()
+
     if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
     else:
@@ -367,8 +369,7 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
-    debug_info = f"{mqtt_dict['MQTT_BROKER']}: {mqtt_dict['MQTT_PORT']}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}."
-    # print(debug_info)
+    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Connect Code={connect_code}."
 
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
         ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
@@ -412,8 +413,13 @@ client_MQTT.connect(broker_address, port=port)  # connect to broker
 
 if __name__ == "__main__":
     # client.loop_forever()
-    client_MQTT.loop_start()
+    # client_MQTT.loop_start()
     app.run_server(debug=True, dev_tools_hot_reload=False)
+    # rc=0
+    # while rc==0:
+    #     rc=client_MQTT.loop()
+    #     print(f"Inside loop rc: {rc}")
+    # print(f"Outside loop rc: {rc}")
 
 client_MQTT.loop_stop()
 client_MQTT.disconnect()
