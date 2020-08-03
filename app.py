@@ -373,7 +373,7 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
-    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Client ID: {mqtt_cliend_id}; Connect Code={connect_code}/{rc}."
+    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Client ID: {mqtt_cliend_id}; Password: {password[:2]}; Connect Code={connect_code}/{rc}."
 
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
         ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
