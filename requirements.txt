@@ -1,5 +1,4 @@
 wheel==0.34.2
-boto==2.49.0
 Brotli==1.0.7
 click==7.1.2
 dash==1.13.4

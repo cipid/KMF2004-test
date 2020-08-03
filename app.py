@@ -2,7 +2,6 @@
 #   pip install dash            --> add dash board elements on web page
 #   pip isntall dash_daq        --> add dash DAQ, Data Acquisition and Control
 #   pip install python-dotenv   --> use environment variables for email account
-#   pip install boto            --> use environment vairables for heroku.com
 #   pip install paho-mqtt       --> use MQTT
 #   pip install pandas          --> read data
 
@@ -17,7 +16,6 @@ mqtt_cliend_id = "Test" + str(random.randint(0,20000))
 from dotenv import load_dotenv
 import os
 import urllib.parse
-# from boto.s3.connection import S3Connection  # For heroku.com
 
 # For data calculations
 import pandas as pd
@@ -83,9 +81,6 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 load_dotenv()
 url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://localhost:1883")
 
-# if url_str == None:  # try boto S3Connection for Heroku platform
-#     mqtt_dict = S3Connection(os.getenv("CLOUDMQTT_URL"))
-#     url_str = mqtt_dict["CLOUDMQTT_URL"]
 url = urllib.parse.urlparse(url_str)
 mqtt_dict = {
     "MQTT_BROKER": url.hostname,
