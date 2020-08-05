@@ -82,18 +82,10 @@ load_dotenv()
 url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://localhost:1883")
 
 url = urllib.parse.urlparse(url_str)
-mqtt_dict = {
-    "MQTT_BROKER": url.hostname,
-    "MQTT_USER": url.username,
-    "MQTT_PWD":url.password,
-    "MQTT_PORT": url.port
-}
-
-connect_code = "Nothing"
-broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
-port = int(mqtt_dict["MQTT_PORT"])  # Broker port
-user = mqtt_dict["MQTT_USER"]  # Connection username
-password = mqtt_dict["MQTT_PWD"]  # Connection password
+broker_address = url.hostname  # Broker address
+port = int(url.port)  # Broker port
+user = url.username  # Connection username
+password = url.password  # Connection password
 topic_levels = [user,
                 "T_SKF",
                 "C003",
@@ -130,11 +122,8 @@ LED3_btn_lbl = ""
 
 # *** dash web page set up
 #
+app.title = "KMF2004"
 app.layout = html.Div([
-    html.Div([
-        html.Small(id="debug_txt"),
-        html.Hr()
-    ]),
 
     dbc.Row([
         dbc.Col([
@@ -318,7 +307,6 @@ def update_text(value):
         Output("ANA", "value"),
         Output("RND", "value"),
         Output("graph_usage", "figure"),
-        Output("debug_txt","children")
     ],
     [Input("interval-component", "n_intervals")]
 )
@@ -368,10 +356,8 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
-    debug_info = f"{broker_address}: {port}; Topic subscribe: {topic_subscribe}; Client ID: {mqtt_cliend_id}; Password: {password[:2]}; Connect Code={connect_code}/{rc}."
-
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
-        ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_info
+        ANA_Level_Burner, RND_Level_Burner, fig_usage
 
 
 @app.callback(
