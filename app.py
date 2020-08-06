@@ -43,7 +43,12 @@ dash_web_page_update_interval = 10000  # in milliseconds
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 server = flask.Flask(__name__)  # define flask app.server
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets, server=server)  #call flask server
+return_code = None  ## for debugging
 # server = app.server
+#
+# To deploy dash in production environment using gunicorn
+# gunicorn app:server --bind 0.0.0.0:8000
+#
 # For different themes, visit
 # https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
 # For layout uisng dbc, visit
@@ -127,6 +132,12 @@ LED3_btn_lbl = ""
 #
 app.title = "KMF2004"
 app.layout = html.Div([
+
+    html.Div([
+        html.P(id="debug_info"),
+        html.Hr(),
+    ]),
+
 
     dbc.Row([
         dbc.Col([
@@ -310,6 +321,7 @@ def update_text(value):
         Output("ANA", "value"),
         Output("RND", "value"),
         Output("graph_usage", "figure"),
+        Output("debug_info", "children")
     ],
     [Input("interval-component", "n_intervals")]
 )
@@ -359,8 +371,10 @@ def update_indicator(n_intervals):
                         range_y=[0, 4]
     )
 
+    debug_msg = f"rc={return_code}"
+
     return LED1_color, LED2_color, LED3_color, LED3_btn_lbl, LED3_outline, \
-        ANA_Level_Burner, RND_Level_Burner, fig_usage
+        ANA_Level_Burner, RND_Level_Burner, fig_usage, debug_msg
 
 
 @app.callback(
@@ -377,9 +391,9 @@ def click_button(n):
 
 
 def on_connect(client_MQTT, userdata, flags, rc):
-    global connect_code
-    connect_code = str(rc)
-    print(f"Connected Code :{str(rc)}")
+    global return_code
+    return_code = str(rc)
+    print(f"Return Code :{str(rc)}")
     # Subscribe Topic from here
     client_MQTT.subscribe(topic_subscribe)
     # print(f"Topic subscribed: {topic_subscribe}")
@@ -402,15 +416,7 @@ client_MQTT.connect(broker_address, port=port)  # connect to broker
 if __name__ == "__main__":
     # client_MQTT.loop_forever()
     client_MQTT.loop_start()
-    app.run_server(debug=True, dev_tools_hot_reload=False)
-    # rc=0
-    # while rc==0:
-    #     rc=client_MQTT.loop()
-    #     print(f"Inside loop rc: {rc}")
-    # print(f"Outside loop rc: {rc}")
-
-# To deploy dash in production environment using gunicorn
-# gunicorn app:server --bind 0.0.0.0:8000
+    app.run_server(debug=True, host="0.0.0.0", port=9001, dev_tools_hot_reload=False)
 
 
 client_MQTT.loop_stop()
