@@ -2,15 +2,17 @@
 #   pip install dash            --> add dash board elements on web page
 #   pip isntall dash_daq        --> add dash DAQ, Data Acquisition and Control
 #   pip install python-dotenv   --> use environment variables for email account
-#   pip install paho-mqtt       --> use MQTT
+#   pip install flask_mqtt      --> use MQTT
 #   pip install pandas          --> read data
 
 # MQTT import
-import paho.mqtt.client as mqtt
+from flask_mqtt import Mqtt
+# from flask_socketio import SocketIO
+# from flask_bootstrap import Bootstrap
 
 # For generating random client ID of MQTT client
 import random
-mqtt_cliend_id = "Test" + str(random.randint(0,20000))
+mqtt_client_id = "Test" + str(random.randint(0,20000))
 
 # For getting environmental variables
 from dotenv import load_dotenv
@@ -41,8 +43,8 @@ import flask
 
 dash_web_page_update_interval = 10000  # in milliseconds
 external_stylesheets = [dbc.themes.BOOTSTRAP]
-server = flask.Flask(__name__)  # define flask app.server
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets, server=server)  #call flask server
+appserver = flask.Flask(__name__)  # define flask app.server
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets, server=appserver)  #call flask server
 return_code = None  ## for debugging
 # server = app.server
 #
@@ -88,13 +90,25 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 #
 load_dotenv()
 url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://localhost:1883")
-
 url = urllib.parse.urlparse(url_str)
-broker_address = url.hostname  # Broker address
-port = int(url.port)  # Broker port
-user = url.username  # Connection username
-password = url.password  # Connection password
-topic_levels = [user,
+# app = Flask(__name__)
+appserver.config['MQTT_CLIENT_ID'] = mqtt_client_id
+appserver.config['MQTT_BROKER_URL'] = url.hostname
+appserver.config['MQTT_BROKER_PORT'] = int(url.port)  # port for non-tls connection
+appserver.config['MQTT_USERNAME'] = url.username
+appserver.config['MQTT_PASSWORD'] = url.password
+appserver.config['MQTT_KEEPALIVE'] = 5  # set the time interval for sending a ping to the broker to 5 seconds
+appserver.config['MQTT_TLS_ENABLED'] = False  # set TLS to disabled
+client_MQTT = Mqtt(appserver)
+# socketio = SocketIO(app)
+# bootstrap = Bootstrap(app)
+# Parameters in case SSL enabled
+# app.config['MQTT_BROKER_PORT'] = 8883
+# app.config['MQTT_TLS_ENABLED'] = True
+# app.config['MQTT_TLS_INSECURE'] = True
+# app.config['MQTT_TLS_CA_CERTS'] = 'ca.crt'
+
+topic_levels = [url.username,
                 "T_SKF",
                 "C003",
                 "NPB19F",
@@ -327,8 +341,6 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    # rc=client_MQTT.loop()
-
     if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
     else:
@@ -390,7 +402,8 @@ def click_button(n):
         return
 
 
-def on_connect(client_MQTT, userdata, flags, rc):
+@client_MQTT.on_connect()
+def handle_connect(client, userdata, flags, rc):
     global return_code
     return_code = str(rc)
     print(f"Return Code :{str(rc)}")
@@ -400,24 +413,16 @@ def on_connect(client_MQTT, userdata, flags, rc):
 
 
 # Callback Function on Receiving the Subscribed Topic/Message
-def on_message(client_MQTT, userdata, msg):
+@client_MQTT.on_message()
+def handle_message(client, userdata, msg):
     topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
     # print(f"{msg.topic} : {topic_msg[msg.topic]}")
 
 
-client_MQTT = mqtt.Client(client_id=mqtt_cliend_id, clean_session=True)  # create new MQTT instance
-# set username and password
-client_MQTT.username_pw_set(user, password=password)
-client_MQTT.on_connect = on_connect  # attach function to callback
-client_MQTT.on_message = on_message  # attach function to callback
-client_MQTT.connect(broker_address, port=port)  # connect to broker
+@client_MQTT.on_log()
+def handle_logging(client, userdata, level, buf):
+    print(level, buf)
 
 
 if __name__ == "__main__":
-    # client_MQTT.loop_forever()
-    client_MQTT.loop_start()
     app.run_server(debug=True, host="0.0.0.0", port=9001, dev_tools_hot_reload=False)
-
-
-client_MQTT.loop_stop()
-client_MQTT.disconnect()
