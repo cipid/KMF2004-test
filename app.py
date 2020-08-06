@@ -37,17 +37,20 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.express as px
 import dash_bootstrap_components as dbc
+import flask
 
-dash_web_page_update_interval = 5000  # in milliseconds
+dash_web_page_update_interval = 10000  # in milliseconds
 external_stylesheets = [dbc.themes.BOOTSTRAP]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = flask.Flask(__name__)  # define flask app.server
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets, server=server)  #call flask server
+# server = app.server
 # For different themes, visit
 # https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/
 # For layout uisng dbc, visit
 # https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
+#
 # *** dash import and set up ***
 
-server = app.server
 
 # *** Read data for graph ***
 #
@@ -312,7 +315,7 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    rc=client_MQTT.loop()
+    # rc=client_MQTT.loop()
 
     if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
@@ -397,14 +400,18 @@ client_MQTT.connect(broker_address, port=port)  # connect to broker
 
 
 if __name__ == "__main__":
-    # client.loop_forever()
-    # client_MQTT.loop_start()
+    # client_MQTT.loop_forever()
+    client_MQTT.loop_start()
     app.run_server(debug=True, dev_tools_hot_reload=False)
     # rc=0
     # while rc==0:
     #     rc=client_MQTT.loop()
     #     print(f"Inside loop rc: {rc}")
     # print(f"Outside loop rc: {rc}")
+
+# To deploy dash in production environment using gunicorn
+# gunicorn app:server --bind 0.0.0.0:8000
+
 
 client_MQTT.loop_stop()
 client_MQTT.disconnect()
