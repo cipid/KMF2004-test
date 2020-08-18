@@ -52,7 +52,7 @@ server = app.server
 # *** Read data for graph ***
 #
 equipment_ID = "gogclpba/T_SKF/C003/NPB19F/RND/Level-Burner"
-csv_path = Path("data", "log_processed.csv")
+csv_path = Path("data", "processed_log.csv")
 usage_hist_df = pd.read_csv(csv_path, parse_dates=["time"])
 # usage_hist_df["time"] = usage_hist_df["time"].dt.tz_localize(tz=tz_hk)
 usage_hist_from = usage_hist_df["time"].min()
@@ -78,22 +78,14 @@ slider_marks[dtime.days] = usage_hist_to.strftime("%Y-%m-%d")
 
 # *** MQTT setup ***
 #
-load_dotenv()
-url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://localhost:1883")
-
-url = urllib.parse.urlparse(url_str)
-mqtt_dict = {
-    "MQTT_BROKER": url.hostname,
-    "MQTT_USER": url.username,
-    "MQTT_PWD":url.password,
-    "MQTT_PORT": url.port
-}
-
 connect_code = "Nothing"
-broker_address = mqtt_dict["MQTT_BROKER"]  # Broker address
-port = int(mqtt_dict["MQTT_PORT"])  # Broker port
-user = mqtt_dict["MQTT_USER"]  # Connection username
-password = mqtt_dict["MQTT_PWD"]  # Connection password
+load_dotenv()
+url_str = os.getenv("CLOUDMQTT_URL", default="mqtt://johndao:nopasswork@localhost:1883")
+url = urllib.parse.urlparse(url_str)
+broker_address = url.hostname  # Broker address
+port = int(url.port)  # Broker port
+user = url.username  # Connection username
+password = url.password  # Connection password
 topic_levels = [user,
                 "T_SKF",
                 "C003",
@@ -412,7 +404,7 @@ client_MQTT.connect(broker_address, port=port)  # connect to broker
 
 if __name__ == "__main__":
     # client.loop_forever()
-    # client_MQTT.loop_start()
+    client_MQTT.loop_start()
     app.run_server(debug=True, dev_tools_hot_reload=False)
     # rc=0
     # while rc==0:
