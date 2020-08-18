@@ -316,8 +316,6 @@ def update_text(value):
 )
 def update_indicator(n_intervals):
 
-    rc=client_MQTT.loop()
-
     if topic_msg[topic_prefix + "LED1/Status"] == "1":
         LED1_color = indicator_colors["on_r"]
     else:
