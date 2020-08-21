@@ -6,7 +6,7 @@
 #   pip install pandas          --> read data
 
 # MQTT import
-import paho.mqtt.client as mqtt
+# import paho.mqtt.client as mqtt
 
 # For generating random client ID of MQTT client
 import random
@@ -370,39 +370,39 @@ def update_indicator(n_intervals):
 )
 def click_button(n):
     if topic_msg[topic_prefix + "LED3/Status"] == "1":
-        client_MQTT.publish(topic_publish, "0")
+        # client_MQTT.publish(topic_publish, "0")
         return
     else:
-        client_MQTT.publish(topic_publish, "1")
+        # client_MQTT.publish(topic_publish, "1")
         return
 
 
-def on_connect(client_MQTT, userdata, flags, rc):
-    global connect_code
-    connect_code = str(rc)
-    # print(f"Connected Code :{str(rc)}")
-    # Subscribe Topic from here
-    client_MQTT.subscribe(topic_subscribe)
-    # print(f"Topic subscribed: {topic_subscribe}")
+# def on_connect(client_MQTT, userdata, flags, rc):
+#     global connect_code
+#     connect_code = str(rc)
+#     # print(f"Connected Code :{str(rc)}")
+#     # Subscribe Topic from here
+#     client_MQTT.subscribe(topic_subscribe)
+#     # print(f"Topic subscribed: {topic_subscribe}")
 
 
 # Callback Function on Receiving the Subscribed Topic/Message
-def on_message(client_MQTT, userdata, msg):
-    topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
-    # print(f"{msg.topic} : {topic_msg[msg.topic]}")
+# def on_message(client_MQTT, userdata, msg):
+#     topic_msg[msg.topic] = str(msg.payload, encoding="UTF-8")
+#     # print(f"{msg.topic} : {topic_msg[msg.topic]}")
 
 
-client_MQTT = mqtt.Client(client_id=mqtt_cliend_id, clean_session=True)  # create new MQTT instance
-# set username and password
-client_MQTT.username_pw_set(user, password=password)
-client_MQTT.on_connect = on_connect  # attach function to callback
-client_MQTT.on_message = on_message  # attach function to callback
-client_MQTT.connect(broker_address, port=port)  # connect to broker
+# client_MQTT = mqtt.Client(client_id=mqtt_cliend_id, clean_session=True)  # create new MQTT instance
+# # set username and password
+# client_MQTT.username_pw_set(user, password=password)
+# client_MQTT.on_connect = on_connect  # attach function to callback
+# client_MQTT.on_message = on_message  # attach function to callback
+# client_MQTT.connect(broker_address, port=port)  # connect to broker
 
 
 if __name__ == "__main__":
     # client.loop_forever()
-    client_MQTT.loop_start()
+    # client_MQTT.loop_start()
     app.run_server(debug=True, dev_tools_hot_reload=False)
     # rc=0
     # while rc==0:
@@ -410,5 +410,5 @@ if __name__ == "__main__":
     #     print(f"Inside loop rc: {rc}")
     # print(f"Outside loop rc: {rc}")
 
-client_MQTT.loop_stop()
-client_MQTT.disconnect()
+# client_MQTT.loop_stop()
+# client_MQTT.disconnect()
